@@ -1,0 +1,21 @@
+﻿body {
+    margin: 0 0 0;
+}
+
+h3{
+    text-align: center;
+    margin: 10px 0 0;
+}
+
+p {
+    text-align:center;
+    margin-bottom 0;
+}
+button{
+    align-self: center;
+    align-items: center;
+}
+
+InputText{
+    margin-top 0;
+}

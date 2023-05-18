@@ -1,0 +1,146 @@
+﻿@using System.Text.Json
+@inject HttpClient Http
+@inject IJSRuntime JsRuntime
+@inject NavigationManager NavManager
+
+<div class="card text-center mb-4">
+    <img src="../sample-data/menulogo.png" class="img-center" alt="top menu text logo" style="display: block; margin-left: auto; margin-right: auto; width: 100%;">
+    @*<img src="../sample-data/menutop.png" class="card-img-bottom" alt="top menu ornament">*@
+
+    @if (pots.Where(p => p.Course_Id == 2).Count() > 0)
+    {
+        <div class="card-body">
+            <h1><i class ="fa-solid fa-seedling" style="color:darkorange;"></i> Alkuruoat</h1>
+            @foreach (var p in pots)
+            {
+                if (p.Course_Id == 2)
+                {
+                    <h4 class="mt-3">@p.DishName</h4>
+                    <div class="fs-5">@p.Description</div>
+                    <div class="fs-6">
+                    @foreach (var t in p.Tags)
+                    {
+                        <span>@t.Name&nbsp; </span>
+                    }
+                    </div>
+                }
+            }
+        </div>
+    }
+
+    @if (pots.Where(p => p.Course_Id == 1).Count() > 0)
+    {
+        <div class="card-body">
+            <h1><i class="fa-solid fa-pizza-slice" style="color:darkorange;"></i> Pääruoat </h1>
+            @foreach (var p in pots)
+            {
+                if (p.Course_Id == 1)
+                {
+                    <h4 class="mt-3">@p.DishName</h4>
+                    <div class="fs-5">@p.Description</div>
+
+                    <div class="fs-6">
+                    @foreach (var t in p.Tags)
+                    {
+                        <span>@t.Name&nbsp; </span>
+                    }
+                    </div>
+
+                }
+            }
+        </div>
+    }
+
+    @if (pots.Where(p => p.Course_Id == 3).Count() > 0)
+    {
+        <div class="card-body">
+            <h1><i class ="fas fa-ice-cream" style="color:darkorange;"></i> Jälkiruoat</h1>
+            @foreach (var p in pots)
+            {
+
+                if (p.Course_Id == 3)
+                {
+
+                    <h4 class="mt-3">@p.DishName</h4>
+                    <div class="fs-5">@p.Description</div>
+                    <div class=fs-6>
+                    @foreach (var t in p.Tags)
+                    {
+                        <span>@t.Name&nbsp; </span>
+                    }
+                    </div>
+
+                }
+            }
+        </div>
+    }
+
+    @if (pots.Where(p => p.Course_Id == 5).Count() > 0)
+    {
+        <div class="card-body">
+            <h1> <i class ="fas fa-bread-slice" style="color:darkorange;"></i> Lisukkeet</h1>
+            @foreach (var p in pots)
+            {
+                if (p.Course_Id == 5)
+                {
+                    <h4 class="mt-3">@p.DishName</h4>
+                    <div class=fs-5>@p.Description</div>
+
+                    <div class="fs-6">
+                    @foreach (var t in p.Tags)
+                    {
+                        <span>@t.Name&nbsp; </span>
+                    }
+                    </div>
+                }
+            }
+        </div>
+    }
+
+    @if (pots.Where(p => p.Course_Id == 4).Count() > 0)
+    {
+        <div class="card-body">
+            <h1><i class="fa-solid fa-wine-glass" style="color:darkorange;"></i> Juomat</h1>
+            @foreach (var p in pots)
+            {
+                if (p.Course_Id == 4)
+                {
+                    <h4 class="mt-3">@p.DishName</h4>
+                    <div class="fs-5">@p.Description</div>
+
+                    <div class="fs-6">
+                    @foreach (var t in p.Tags)
+                    {
+                        <span>@t.Name&nbsp; </span>
+                    }
+                    </div>
+                }
+            }
+        </div>
+    }
+
+    @if (!printable)
+    {
+        <button id="printButton" @onclick=@printMenu class="btn">
+            <i class="fa fa-print fa-2x" aria-hidden="true" style="color:darkorange;"></i>
+        </button>
+    }
+    <img src="../sample-data/menulogobottom4.png" class="card-img-bottom" alt="bottom menu ornament">
+</div>
+
+
+@code {
+    //[Inject] HttpClient Http { get; set; }
+    [Parameter] public string Guid { get; set; }
+    [Parameter] public List<Pot> pots { get; set; }// = new List<Pot>();
+    [Parameter] public bool printable { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //pots = await Http.GetFromJsonAsync<List<Pot>>($"{APIEndpoints.s_Pots}/{Guid}");
+    }
+    private async Task printMenu()
+    {
+        NavManager.NavigateTo($"print/{Guid}");
+    }
+}

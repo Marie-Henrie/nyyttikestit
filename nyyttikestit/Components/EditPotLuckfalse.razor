@@ -1,0 +1,37 @@
+﻿@inject HttpClient Http
+@inject IJSRuntime JsRuntime
+
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);"aria-modal="true" role="dialog">
+        <div class="modal-dialog">
+        <div class="modal-content" style=" background-color: orangered);
+        <div class="form-floating">
+            <InputText class="form-control" id="floatingInput" placeholder="Luoja" @bind-Value="potluck.Name" />
+            <label for="floatingInput">@potluck.Name</label>
+        </div>
+        <div class="form-floating">
+            <InputText class="form-control" id="floatingInput" placeholder="Luoja" @bind-Value="potluck.Description" />
+            <label for="floatingInput">@potluck.Description</label>
+        </div>
+        <h6 class="card-subtitle mb-2">
+            Tämän kestin liittymiskoodi on @Guid <button id="copyGuid" @onclick=@CopyToClipboard class="btn">
+                <i class="fa fa-copy fas" aria-hidden="true" style="color:darkorange;"></i>
+            </button>
+        </h6>
+    </div>
+</div>
+
+
+@code {
+    [Parameter] public string Guid { get; set; }
+
+    [Parameter] public Potluck potluck{ get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        potluck = await Http.GetFromJsonAsync<Potluck>($"{APIEndpoints.s_Potlucks}/getpotluck/{Guid}");
+    }
+    private async Task CopyToClipboard()
+    {
+        await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", Guid);
+    }
+}

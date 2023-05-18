@@ -1,0 +1,68 @@
+﻿@using System.Text.Json
+@inject HttpClient Http
+@inject NavigationManager NavManager
+
+
+<div class="card text-center" style="width: 16rem;">
+    <img src="../assets/img/invite.jpg" class="card-img-top-2" alt="...">
+    <div class="card-body" style="width: 100%; height: 100%;">
+
+        @if (loading == true)
+        {
+            <div class="mt-5">
+                <LoadingDot />
+            </div>
+        }
+        else
+        {
+            <EditForm Model="d">
+                <h5 class="card-title">Liity kesteille</h5>
+                <div class="form-floating">
+                    <InputText class="form-control" id="floatingInput" placeholder="Guid" @bind-Value="d.guid" />
+                    <label for="floatingInput">Syötä kutsukoodi</label>
+                </div>
+                <br />
+
+            </EditForm>
+            <div class="d-grid gap-2 mb-auto mt-2"><button class="button button-update" @onclick="GoToPotluck">Liity</button></div>
+        }
+        @if (!PotluckOK)
+        {
+            <div class="mt-4"><p class="card-text">Nyyttikestiä ei löytynyt.</p></div>
+        }
+    </div>
+</div>
+
+
+@code {
+    class data
+    {
+        public string guid = "";
+    }
+
+    data d = new data();
+
+    public string url = "";
+
+    bool PotluckOK = true;
+
+    bool loading = false;
+
+    private async Task GoToPotluck()
+    {
+        loading = true;
+        using var resp = await Http.GetAsync($"{APIEndpoints.s_Potlucks}/getpotluck/{d.guid}");
+
+        if (resp.IsSuccessStatusCode) // ei hyvä tarkistus korjaa
+        {
+            NavManager.NavigateTo($"potluck/{d.guid.Trim()}");
+            loading = false;
+        }
+        else
+        {
+            loading = false;
+            PotluckOK = false;
+            StateHasChanged();
+        }
+    }
+}

@@ -1,0 +1,84 @@
+﻿@page "/potluck/{Guid}"
+
+@using System.Threading;
+@using nyyttikestit.Client;
+@inject HttpClient Http
+@inject NavigationManager NavManager
+
+<nyyttikestit.Components.Navbar />
+@*<main class="container-fluid main-bg-img img-fluid vh-100">*@
+<main class="container-fluid main-bg-img img-fluid pt-3" style="background-image: url(../sample-data/taustakuva.png);height: 100%;background-position: center; background-repeat: no-repeat; background-size: cover;">
+    <div class="row">
+        <div class="col-lg-3"></div>
+        <div class="col-lg-6">
+            <nyyttikestit.Components.ShowPotluckInfo Guid="@Guid" />
+        </div>
+        <div class="col-lg-3"></div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-lg-3"></div>
+        <div class="col-lg-6">
+            <div class="d-grid">
+                <button class="button button-update fs-5" onclick="@(()=>{@createPotWindowOpen=true;})"><i class="fas fa-plus"></i> Lisää nyytti</button>
+            </div>
+        </div>
+        <div class="col-lg-3"></div>
+    </div>
+
+    @if (createPotWindowOpen)
+    {
+        <nyyttikestit.Components.CreatePot guid=@Guid
+                                           createdPot="@AddPot"
+                                           OnClose="@OnDialogClose" />
+    }
+
+    <div class="mt-5">
+        <nyyttikestit.Components.ShowPot Guid=@Guid
+                                         DataList="@DataList"
+                                         OnStateChanged="@OnStateChanged"
+                                         DataListEdited="@OnDataListEdited" />
+    </div>
+    <div class="row">
+        <div class="col-md-2 col-lg-3"></div>
+        <div class="col-md-8 col-lg-6 mt-5">
+            <nyyttikestit.Components.PotluckMenu1 pots="@DataList" printable="@false" Guid="@Guid" />
+        </div>
+        <div class="col-md-2 col-lg-3"></div>
+    </div>
+</main>
+
+<nyyttikestit.Components.Footer />
+
+@code {
+
+    [Parameter] public string Guid { get; set; }
+
+
+    public List<Pot> DataList = new List<Pot>();
+
+    public bool createPotWindowOpen = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        DataList = await Http.GetFromJsonAsync<List<Pot>>($"{APIEndpoints.s_Pots}/{Guid}");
+    }
+
+    async void AddPot(Pot cPot)
+    {
+        DataList.Add(cPot);
+        await InvokeAsync(StateHasChanged);
+    }
+    async void OnStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+    private async void OnDialogClose(bool isOk)
+    {
+        createPotWindowOpen = false;
+    }
+    async void OnDataListEdited(List<Pot> pots)
+    {
+        DataList = pots;
+        await InvokeAsync(StateHasChanged);
+    }
+}

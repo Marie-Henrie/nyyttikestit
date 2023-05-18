@@ -1,0 +1,146 @@
+﻿@using System.Text.Json
+@using System;
+@using System.Collections;
+@using System.Globalization;
+@inject HttpClient Http
+@inject IJSRuntime JsRuntime
+
+@*style="width: 16rem;*@
+
+<div class="card text-center" style="width: 16rem;">
+    @*<div class="row">*@
+    <img src="../assets/img/cooking.jpeg" class="card-img-top-2" alt="...">
+    <div class="card-body">
+
+
+        <div class="row">
+            <h5 class="card-title">Luo Nyyttikestit</h5>
+            @if (!PLCreated)
+            {
+                @if (loading == true)
+                {
+                    <div class="mt-5">
+                        <LoadingDot />
+                    </div>
+                }
+                else
+                {
+                    @*                        <div class="row g-0">
+            <div class="col">*@
+                    <EditForm Model="pl" OnInvalidSubmit="PostPotluck">
+                        
+                 
+                        <div class="form-floating">
+                            <InputText class="form-control" id="floatingInput" placeholder="Tapahtuman nimi" @bind-Value="pl.Name" />
+                            <label for="floatingInput">Tapahtuman nimi</label>
+                        </div>
+                        <div class="form-floating mt-2">
+                            <InputText class="form-control" id="floatingInput" placeholder="Tapahtuman nimi" @bind-Value="pl.Description" />
+                            <label for="floatingInput">Tapahtuman kuvaus</label>
+                        </div>
+                        <div class="form-floating mt-2">
+                            <InputText class="form-control" id="floatingInput" placeholder="paikka" @bind-Value="pl.Location" />
+                            <label for="floatingInput">Tapahtumapaikka</label>
+                        </div>
+                        <div class="row">
+                            <div class="mt-2 text-center col-lg-6">
+                                <label for="floatingInput">Päivämäärä</label>
+                                <InputText type="date" class="form-control" id="floatingInput" placeholder="Päivä" @bind-Value="InputDate" required />
+                                @*<label for="floatingInput">Päivä</label>*@
+                            </div>
+                            <div class="mt-2 text-center col-lg-6">
+                                <label for="floatingInput">Aika</label>
+                                <InputText type="time" class="form-control" id="floatingInput" placeholder="Kello" @bind-Value="InputTime" required/>
+                                @*<label for="floatingInput">Päivä</label>*@
+                            </div>
+                        </div>
+                  
+
+                        @*<button class="btn btn-primary mt-3 button-color" @onclick="PostPotluck">Luo</button>*@
+                        <div class="d-grid gap-2 mt-2"><button class="button mt-2 button-update" @onclick="PostPotluck">Luo</button></div>
+
+                    </EditForm>
+                }
+            }
+            else
+            {
+                <p style="text-align:center" class="card-text">Kestit luotu!<br>Kopioi linkki talteen.</p>
+                <a href=@url class="card-link mb-2">@url</a>
+                <div class="d-grid gap-2">
+                    <button class="button mt-4 button-update" @onclick="CopyToClipboard">Kopioi linkki</button>
+                </div>
+                @if (linkCopied)
+                {
+                    <p class="mt-3" style="text-align:center">Linkki kopioitu leikekirjaan.</p>
+                }
+            }
+        </div>
+    </div>
+    @*</div>*@
+</div>
+
+
+@code {
+
+        [Parameter] public string potGuid { get; set; }
+    private PotluckDTO pl = new PotluckDTO();
+
+
+    public string url = "";
+
+    bool PLCreated = false;
+    bool linkCopied = false;
+
+    bool loading = false;
+
+    public string InputTime { get; set; }
+    public string InputDate { get; set; }
+
+    DateTime? dt = null;
+    DateTime? dt2 = null;
+
+    private async Task PostPotluck()
+    {
+        if (string.IsNullOrEmpty(InputTime))
+        {
+            InputTime = "00:00:00";
+        }
+        if (string.IsNullOrEmpty(InputDate))
+        {
+            InputDate = "1900-01-01";
+        }
+        InputTime = InputTime.Replace('.', ':');
+        loading = true;
+        var CultureInfo = new CultureInfo("en-US");
+        pl.Date = DateTime.ParseExact(InputDate + " " + InputTime, "yyyy-MM-dd HH:mm:ss", CultureInfo);
+
+        if (string.IsNullOrEmpty(pl.Name))
+        {
+            pl.Name = "";
+        }
+        using var response = await Http.PostAsJsonAsync<PotluckDTO>(APIEndpoints.s_Potlucks, pl);
+
+        if (response.IsSuccessStatusCode)
+        {
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+            Potluck? plr = JsonSerializer.Deserialize<Potluck>(responseContent, options);
+
+            /*Urlin base johonkin fiksuun paikkaan*/
+            url = $"{APIEndpoints.ClientBaseUrl}/potluck/" + plr.Guid;
+            PLCreated = true;
+            loading = false;
+        }
+
+        Console.WriteLine(response);
+    }
+    private async Task CopyToClipboard()
+    {
+        await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", url);
+        linkCopied = true;
+    }
+}

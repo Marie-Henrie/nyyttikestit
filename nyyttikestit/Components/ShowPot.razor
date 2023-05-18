@@ -1,0 +1,110 @@
+﻿@using System.Threading;
+@using nyyttikestit.Client;
+@inject HttpClient Http
+@inject NavigationManager NavManager
+
+<div>
+    @if (DataList.Count() == 0)
+
+    {
+        <p></p>
+
+    }
+    else
+    {
+        <div class="row">
+            @*<ul class="cards">*@
+                @foreach (var item in DataList)
+                {
+                if (item == null) continue;
+                <div class="col-lg-3 col-md-4 col-xl-2 mt-3 text-center" style="cursor: pointer;" @onclick="()=>showModal(item)" data-bs-toggle="modal" data-bs-target="#myModal">
+                        <div class="card pt-3">
+                        @switch (item.Course_Id)
+                        {
+                            case 1:
+                                <span><i class="fa-solid fa-pizza-slice fa-4x iconcolor"></i></span>
+                                break;
+                            case 2:
+                                <span><i class ="fa-solid fa-seedling fa-4x iconcolor"></i></span>
+                                break;
+                            case 3:
+                                <span><i class ="fas fa-ice-cream fa-4x iconcolor"></i></span>
+                                break;
+                            case 4:
+                                <span><i class ="fa-solid fa-wine-glass fa-4x iconcolor"></i></span>
+                                break;
+                            case 5:
+                                <span><i class ="fas fa-bread-slice fa-4x iconcolor"></i></span>
+                                break;
+                        }
+                            <div class="card-body">
+                            <h5 class="card-title">@item.DishName</h5>
+                            </div>
+                            <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><i class="fas fa-user iconcolor"></i> @item.Creator</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                }
+
+        </div>
+
+        @if (DialogIsOpen)
+        {
+            <ModalDialog Pot="@pot_" Guid="@Guid"
+                 OnClose="@OnDialogClose"
+                 OnRemovePot="@OnRemovePot"
+                 editedPot="@OnEditPot">
+            </ModalDialog>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string Guid { get; set; }
+    //private string pot;
+    private string description;
+    private Pot pot_;
+    private bool DialogIsOpen = false;
+
+    [Parameter] public List<Pot> DataList { get; set; }// = new List<Pot>();
+    [Parameter] public EventCallback<List<Pot>> DataListEdited { get; set; }// = new List<Pot>();
+    [Parameter] public EventCallback<bool> OnStateChanged { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        //DataList = await Http.GetFromJsonAsync<List<Pot>>($"{APIEndpoints.s_Pots}/{Guid}");
+    }
+
+    public virtual void showModal(Pot pot)
+    {
+        pot_ = pot;
+        Console.WriteLine("hep");
+        DialogIsOpen = true;
+    }
+
+    private Task OnRemovePot(Pot dPot)
+    {
+        DataList.Remove(dPot);
+        InvokeAsync(StateHasChanged);
+        DataListEdited.InvokeAsync(DataList);
+        return OnStateChanged.InvokeAsync(true);//Tietoa parentille "PotluckPageen" että tietoja on muutettu -> childit renderöi uudestaan
+    }
+
+    private Task OnEditPot(Pot epot)
+    {
+        DataList[DataList.FindIndex(p => p.Pot_Id == epot.Pot_Id)] = epot;
+        DataListEdited.InvokeAsync(DataList);
+        InvokeAsync(StateHasChanged);
+
+        return OnStateChanged.InvokeAsync(true);//Tietoa parentille "PotluckPageen" että tietoja on muutettu -> childit renderöi uudestaan
+
+    }
+
+    private async Task OnDialogClose(bool isOk)
+    {
+        DialogIsOpen = false;
+    }
+}

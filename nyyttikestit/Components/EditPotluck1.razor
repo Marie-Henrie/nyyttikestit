@@ -1,0 +1,140 @@
+﻿@using System.Text.Json
+@using System;
+@using System.Collections;
+@using System.Globalization;
+@inject HttpClient Http
+@inject IJSRuntime JsRuntime
+
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);"
+     aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+
+                <h5 class="modal-title">Muokkaa Nyyttikestiä</h5>
+
+                <button @onclick=@CloseEditModal class="btn"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+            @if (loading == true)
+            {
+                <div class="mt-5">
+                    <LoadingDot />
+                </div>
+            }
+            else
+            {
+                <EditForm Model="pl" OnInvalidSubmit="PutPotluck">
+
+                    <div class="form-floating">
+                        <InputText class="form-control" id="floatingInput" placeholder="Tapahtuman nimi" @bind-Value="EditPotluck.Name" />
+                        <label for="floatingInput">Tapahtuman nimi</label>
+                    </div>
+                    <div class="form-floating mt-2">
+                        <InputText class="form-control" id="floatingInput" placeholder="Tapahtuman nimi" @bind-Value="EditPotluck.Description" />
+                        <label for="floatingInput">Tapahtuman kuvaus</label>
+                    </div>
+                    <div class="form-floating mt-2">
+                        <InputText class="form-control" id="floatingInput" placeholder="Kestipaikka" @bind-Value="EditPotluck.Location" />
+                        <label for="floatingInput">Tapahtumapaikka</label>
+                    </div>
+                    <div class="row">
+                        <div class="mt-2 text-center col-lg-6">
+                                <label for="floatingInput">Päivämäärä</label>
+                                <InputText type="date" class="form-control" id="floatingInput" placeholder="Päivä" @bind-Value="InputDate" />
+                            @*<label for="floatingInput">Päivä</label>*@
+                        </div>
+                        <div class="mt-2 text-center col-lg-6">
+                                <label for="floatingInput">Aika</label>
+                                <InputText type="time" class="form-control" id="floatingInput" placeholder="Aika" @bind-Value="InputTime" />
+                            @*<label for="floatingInput">Päivä</label>*@
+                        </div>
+                    </div>
+                    @*<button class="btn btn-primary mt-3 button-color" @onclick="PostPotluck">Luo</button>*@
+                    <div class="d-grid gap-2 mt-2"><button class="button mt-2 button-update" @onclick="PutPotluck">Muokkaa</button></div>
+                </EditForm>
+            }
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+@code {
+
+    [Parameter] public Potluck EditPotluck { get; set; }
+    [Parameter] public EventCallback<bool> OnClose { get; set; }
+    private PotluckDTO pl = new PotluckDTO();
+
+
+    public string url = "";
+
+    bool PLCreated = false;
+    bool linkCopied = false;
+
+    bool loading = false;
+
+    public string InputTime { get; set; }
+    public string InputDate { get; set; }
+
+    //DateTime? dt = null;
+    //DateTime? dt2 = null;
+
+
+    private Task CloseEditModal()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+    private async Task PutPotluck()
+    {
+        if (string.IsNullOrEmpty(InputTime))
+        {
+            InputTime = EditPotluck.Date.ToString("HH:mm:ss");
+        }
+        if (string.IsNullOrEmpty(InputDate))
+        {
+            InputDate = EditPotluck.Date.ToString("yyyy-MM-dd");
+        }
+        InputTime = InputTime.Replace('.', ':');
+
+        loading = true;
+        var CultureInfo = new CultureInfo("en-US");
+
+            pl.Date = DateTime.ParseExact(InputDate + " " + InputTime, "yyyy-MM-dd HH:mm:ss", CultureInfo);
+
+
+        EditPotluck.Date = pl.Date;
+        pl.Name = EditPotluck.Name;
+        pl.Description = EditPotluck.Description;
+        pl.Location = EditPotluck.Location;
+
+        using var response = await Http.PutAsJsonAsync<PotluckDTO>(APIEndpoints.s_Potlucks + "/" + EditPotluck.Potluck_Id.ToString(), pl);
+
+        if (response.IsSuccessStatusCode)
+        {
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+            //Potluck? plr = JsonSerializer.Deserialize<Potluck>(responseContent, options);
+
+            ///*Urlin base johonkin fiksuun paikkaan*/
+            //url = "https://nyyttikestit.azurewebsites.net/potluck/" + plr.Guid;
+            //PLCreated = true;
+            //loading = false;
+        }
+
+        //Console.WriteLine(response);
+        CloseEditModal();
+    }
+    private async Task CopyToClipboard()
+    {
+        await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", url);
+        linkCopied = true;
+    }
+}

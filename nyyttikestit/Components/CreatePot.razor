@@ -1,0 +1,175 @@
+﻿@using System.Text.Json
+@inject HttpClient Http
+@inject IJSRuntime JsRuntime
+
+<div class="modal fade show text-center" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);"
+     aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Luo Nyytti</h4>
+                <button @onclick=@CloseModal class="btn"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                @if (loaded)
+                {
+                    <EditForm Model="pot" OnInvalidSubmit="PostPot">
+                        <div class="form-floating">
+                            <InputText class="form-control" id="floatingInput" placeholder="Luoja" @bind-Value="pot.Creator" />
+                            <label for="floatingInput">Tekijä</label>
+                        </div>
+                        <br />
+                        <div class="form-floating">
+                            <InputText class="form-control" id="floatingInput" placeholder="Aaterian nimi" @bind-Value="pot.DishName" />
+                            <label for="floatingInput">Aterian nimi</label>
+                        </div>
+                        <br />
+                        <div class="form-floating">
+                            <InputText class="form-control" id="floatingInput" placeholder="Kuvaus" @bind-Value="pot.Description" />
+                            <label for="floatingInput">Kuvaus</label>
+                        </div>
+                        <br />
+                        @foreach (var t in selected_tags)
+                        {
+                            <p>@t.Name <button @onclick="(() => DeleteTag(t))" class="btn"><i class="fa fa-trash"></i></button></p>
+                        }
+                        @*<br />*@
+
+                    
+                        <div class="dropdown">
+                            <button class="button button-update dropdown-toggle mb-2 fs-3" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                Tagit
+                            </button><ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                @foreach (var t in tags)
+                                {
+                                    <li><a class="dropdown-item" @onclick="(()=>SelectTag(t))">@t.Name</a></li>
+                                }
+                            </ul>
+                        </div>
+                    
+                        
+                            <div class="dropdown">
+                                <button class="button button-update dropdown-toggle mb-2 fs-4" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                    @buttontext
+                                </button><ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                    @foreach (var d in dishes)
+                                    {
+                                        <li><a class="dropdown-item" @onclick="(()=>SelectDish(d))">@d.Name</a></li>
+                                    }
+                                </ul>
+                            </div>
+                        
+                            <div class="d-grid">
+                                <button class="button button-update fs-4" @onclick="PostPot">Luo</button>
+                            </div>
+</EditForm>
+                }
+                else if(loading == true)
+                {
+                    <div class="mt-5">
+                        <LoadingDot />
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    [Parameter] public string guid { get; set; }
+
+    [Parameter] public EventCallback<Pot> createdPot { get; set; }
+
+    [Parameter] public EventCallback<bool> OnClose { get; set; }
+
+    bool loaded = false;
+
+    bool loading = true;
+
+    private string buttontext = "Valitse ruokalaji";
+
+    public List<TagDTO> tags = new List<TagDTO>();
+
+    public List<Course> dishes;
+
+    public Course selected_course = null;
+
+    public List<TagDTO> selected_tags = new List<TagDTO>();
+
+    private PotDTO pot = new PotDTO();
+
+    private bool missingFields = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        tags = await Http.GetFromJsonAsync<List<TagDTO>>(APIEndpoints.s_Tags);
+        dishes = await Http.GetFromJsonAsync<List<Course>>(APIEndpoints.s_Courses);
+        loaded = true;
+        loading = false;
+    }
+
+    private async Task PostPot()
+    {
+        pot.tag_ids = new List<int>();
+        foreach (var t in selected_tags)
+        {
+            pot.tag_ids.Add(t.Tag_Id);
+        }
+
+
+        string missingFields = "";
+
+        if (string.IsNullOrWhiteSpace(pot.Creator)) missingFields += "\nNyytillä täytyy olla luoja.";
+        if (string.IsNullOrWhiteSpace(pot.DishName)) missingFields += "\nAterialla täytyy olla nimi.";
+        if (string.IsNullOrWhiteSpace(pot.Description)) missingFields += "\nNyytillä täytyy olla kuvaus.";
+        if (selected_course != null) pot.Course_Id = selected_course.Id;
+        else missingFields += "\nRuokalajia ei ole valittuna.";
+
+        if (!string.IsNullOrEmpty(missingFields))
+        {
+            await JsRuntime.InvokeVoidAsync("alert", missingFields);
+            return;
+        }
+
+        loading = true;
+        using var response = await Http.PostAsJsonAsync<PotDTO>(APIEndpoints.s_PostPot + "/" + guid, pot);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            Pot cPot = JsonSerializer.Deserialize<Pot>(responseContent, options);
+            createdPot.InvokeAsync(cPot);
+            StateHasChanged();
+            CloseModal();
+            loading = false;
+            return;
+        }
+        loading = false;
+        CloseModal();
+    }
+    public virtual void SelectDish(Course d)
+    {
+        selected_course = d;
+        buttontext = d.Name;
+    }
+    public virtual void SelectTag(TagDTO t)
+    {
+        if (selected_tags.Contains(t)) return;
+        selected_tags.Add(t);
+
+    }
+
+    public virtual void DeleteTag(TagDTO t)
+    {
+        selected_tags.Remove(t);
+    }
+
+    private Task CloseModal()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+}

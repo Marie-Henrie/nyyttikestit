@@ -1,0 +1,27 @@
+﻿@page "/print/{Guid}"
+
+@using System.Text.Json
+@inject HttpClient Http
+@inject IJSRuntime JsRuntime
+@inject NavigationManager NavManager
+
+<div>
+<nyyttikestit.Components.PotluckMenu1 pots="@DataList" printable="@true" />
+</div>
+
+@code {
+
+    [Parameter] public string Guid{ get; set; }
+    public List<Pot> DataList = new List<Pot>();
+
+    bool firstRender = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        DataList = await Http.GetFromJsonAsync<List<Pot>>($"{APIEndpoints.s_Pots}/{Guid}");
+        StateHasChanged();
+        await JsRuntime.InvokeVoidAsync("print");
+        NavManager.NavigateTo($"potluck/{Guid}");
+    }
+
+}

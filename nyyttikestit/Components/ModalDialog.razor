@@ -1,0 +1,130 @@
+﻿@inject HttpClient Http
+@inject IJSRuntime JsRuntime
+
+
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);"
+     aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content" style="
+    border-style: solid;
+    border-color: darkorange;
+    border-width: 3px;">
+            <div class="modal-header" style=" border-bottom-style: solid; border-color: darkorange;">
+                <h4 class="modal-title" style="text-transform: uppercase;
+    color: darkorange;
+    font-size: 20px;
+    font-weight: bold;">@Pot.DishName</h4>
+                <button @onclick=@ModalCancel class="btn"><i class="fa fa-times"></i></button>
+            </div>
+
+            @if(loading){
+                <div class="mt-5">
+                    <LoadingDot />
+                </div>
+            }
+            else{
+            <div class="modal-body">
+               <p class="fs-4">Ruokalajin tyyppi: @course.Name</p>
+               <p class="fs-4">Kuvaus: @Pot.Description</p>
+               <font size="3">
+                @foreach(var t in Pot.Tags){
+                    <span>@t.Name&nbsp; </span>
+                }
+                </font>
+            </div>
+            }
+            <div class="modal-footer">
+                <button @onclick=@RemovePot class="btn"><i class="fa fa-trash"></i></button>
+                <button @onclick=@(()=>{DialogIsOpen =true;}) class="btn"><i class="fa fa-edit"></i></button>
+                <button @onclick=@Ok class="btn"><i class="fa fa-check"></i></button>
+            </div>
+        </div>
+    </div>
+
+        @if (DialogIsOpen)
+        {
+            <EditPot epot="@Pot" guid="@Guid"
+                          editedPot="@OnEditPot"
+                          OnClose="@OnDialogClose">
+
+            </EditPot>
+        }
+</div>
+
+
+
+@code {
+
+    [Parameter]
+    public Pot Pot { get; set; }
+
+    [Parameter]
+    public string Guid { get; set; }
+
+    [Parameter]
+    public EventCallback<Pot> OnRemovePot { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    [Parameter] public EventCallback<Pot> editedPot { get; set; }
+
+    public Course course = new Course();
+
+    public List<TagDTO> tags = new List<TagDTO>();
+
+    bool DialogIsOpen = false;
+
+    bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        tags = await Http.GetFromJsonAsync<List<TagDTO>>(APIEndpoints.s_Tags);
+        course = await Http.GetFromJsonAsync<Course>($"{APIEndpoints.s_Courses}/{Pot.Course_Id}");
+        loading = false;
+    }
+
+    //hae potin course id:llä ruokalajin nimi
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+    private Task ModalOk()
+    {
+        return OnClose.InvokeAsync(true);
+    }
+
+    private Task Ok()
+    {
+        return OnClose.InvokeAsync(true);
+    }
+
+    private async void RemovePot(){
+        loading = true;
+        bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm", "Oletko aivan varma?");
+
+        if(confirmed){
+            await Http.DeleteAsync($"{APIEndpoints.s_DeletePot}/{Guid}/{Pot.Pot_Id}");
+            await OnRemovePot.InvokeAsync(Pot);
+            OnClose.InvokeAsync(false);
+            loading = false;
+            return;
+        }
+        loading = false;
+    }
+
+    private async void OnDialogClose(bool isOk)
+    {
+        DialogIsOpen = false;
+    }
+    private async void OnEditPot(Pot epot)
+    {
+        DialogIsOpen = false;
+        Pot = epot;
+        editedPot.InvokeAsync(Pot);
+        OnClose.InvokeAsync(false);
+    }
+}
+}
